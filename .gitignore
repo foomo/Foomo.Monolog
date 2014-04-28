@@ -1,0 +1,5 @@
+.*
+*~
+!.git*
+/cli/php-*
+/htdocs/runJob.php
