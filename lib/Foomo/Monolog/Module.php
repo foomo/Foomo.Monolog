@@ -41,20 +41,7 @@ class Module extends \Foomo\Modules\ModuleBase
 	 */
 	public static function initializeModule()
 	{
-		//some vendor directories
-		$symfonyDir = self::getVendorDir('Symfony-2.4.3');
-		$monologDir = self::getVendorDir('monolog-1.9.1') . DIRECTORY_SEPARATOR . 'src';
-		$psrDir = self::getVendorDir() . DIRECTORY_SEPARATOR . 'PSR-3';
 
-		//require symfony universal class loader autoloader
-		require_once($symfonyDir . DIRECTORY_SEPARATOR . 'Component' . DIRECTORY_SEPARATOR . 'ClassLoader' . DIRECTORY_SEPARATOR . 'UniversalClassLoader.php');
-
-		//autoload PSR-0 standard
-		$loader = new \Symfony\Component\ClassLoader\UniversalClassLoader();
-		$loader->registerNamespace('Symfony\\Component', $symfonyDir);
-		$loader->registerNamespace('Psr', $psrDir);
-		$loader->registerNamespace('Monolog', $monologDir);
-		$loader->register();
 	}
 
 	/**
@@ -76,6 +63,29 @@ class Module extends \Foomo\Modules\ModuleBase
 	{
 		return array(
 			\Foomo\Modules\Resource\Module::getResource('Foomo', '0.3.*'),
+			\Foomo\Modules\Resource\ComposerPackage::getResource('monolog/monolog', '*.*.*'), //Monolog bundle
+			\Foomo\Modules\Resource\Config::getResource(self::NAME, 'Foomo.Monolog.config')
 		);
+	}
+
+
+	/**
+	 * @var array
+	 */
+	private static $loggers = [];
+
+	/**
+	 * get logger singleton
+	 * @param $channel
+	 * @return \Monolog\Logger
+	 */
+
+	public static function getLogger($channel)
+	{
+		if (!isset(self::$loggers[$channel])) {
+			$config = \Foomo\Config::getConf(self::NAME, \Foomo\Monolog\DomainConfig::NAME);
+			self::$loggers[$channel] = $config->getLogger($channel);
+		}
+		return self::$loggers[$channel];
 	}
 }

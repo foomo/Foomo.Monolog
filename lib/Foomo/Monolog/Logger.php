@@ -2,15 +2,16 @@
 
 namespace Foomo\Monolog;
 
-class Logger {
+class Logger
+{
 
 	private static $traceId;
 
 	public static function getTraceId()
 	{
-		if(is_null(self::$traceId)) {
+		if (is_null(self::$traceId)) {
 			$sessionId = \Foomo\Session::getSessionIdIfEnabled();
-			if(is_null($sessionId)) {
+			if (is_null($sessionId)) {
 				$sessionId = uniqid() . time();
 			}
 			self::$traceId = sha1($sessionId);
@@ -18,15 +19,30 @@ class Logger {
 		return self::$traceId;
 	}
 
-	public static function log($message, $level)
+	/**
+	 * log
+	 *
+	 * @param string $message
+	 * @param string $level \Monolog\Logger::DEBUG...
+	 * @param string $channel
+	 * @param mixed $context
+	 */
+	public static function log($message, $level = \Monolog\Logger::DEBUG, $channel = 'app', $context = [])
 	{
-		//@todo implement me
+		$logger = \Foomo\Monolog\Module::getLogger($channel);
+		return $logger->addRecord($level, $message, $context);
 	}
 
-	public static function applicationLog($message, $level)
+	/**
+	 * log with traceID
+	 *
+	 * @param string $message
+	 * @param string $level \Monolog\Logger::DEBUG...
+	 * @param string $channel
+	 */
+	public static function applicationLog($message, $level, $channel = 'app')
 	{
-		//@todo implement me
-//		$this->application->addRecord($message, $level, self::getTraceId());
+		self::log($message, $level, $channel, self::getTraceId());
 	}
 
 }
