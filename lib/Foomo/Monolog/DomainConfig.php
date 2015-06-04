@@ -56,6 +56,22 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	];
 
 	/**
+	 * get channel named default or if not exists, the first defined
+	 * @return string
+	 */
+	public function getDefaultChannel() {
+		$ret = false;
+		foreach ($this->channels as $confChannel => $channelConfig) {
+			if (empty($ret)) {
+				$ret = $confChannel;
+			} else if ($confChannel == 'default') {
+				$ret = $confChannel;
+			}
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param string $channel
 	 * @return \Monolog\Logger
 	 */

@@ -45,4 +45,12 @@ class Logger
 		self::log($message, $level, $channel, self::getTraceId());
 	}
 
+	/**
+	 * get the default channel name
+	 * @return string default channel name
+	 */
+	public static function getDefaultChannel() {
+		return \Foomo\Monolog\Module::getModuleConfig()->getDefaultChannel();
+	}
+
 }

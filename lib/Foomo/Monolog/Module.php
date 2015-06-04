@@ -88,4 +88,11 @@ class Module extends \Foomo\Modules\ModuleBase
 		}
 		return self::$loggers[$channel];
 	}
+
+	/**
+	 * @return \Foomo/Monolog/DomainConfig
+	 */
+	public static function getModuleConfig() {
+		return \Foomo\Config::getConf(self::NAME, \Foomo\Monolog\DomainConfig::NAME);
+	}
 }
