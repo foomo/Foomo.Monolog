@@ -120,14 +120,20 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 		foreach ($this->channels as $confChannel => $channelConfig) {
 			if ($channel == $confChannel) {
 				# pre processor
-				$processors = self::getProcessors($channelConfig['processors']);
-				foreach ($processors as $processor) {
-					$logger->pushProcessor($processor);
+				if(isset($channelConfig['processors'])) {
+					$processors = self::getProcessors($channelConfig['processors']);
+					foreach ($processors as $processor) {
+						$logger->pushProcessor($processor);
+					}
 				}
 				# handler
-				$handlers = self::getHandlers($channelConfig['handlers']);
-				foreach ($handlers as $handler) {
-					$logger->pushHandler($handler);
+				if(isset($channelConfig['handlers'])) {
+					$handlers = self::getHandlers($channelConfig['handlers']);
+					foreach($handlers as $handler) {
+						$logger->pushHandler($handler);
+					}
+				} else {
+					trigger_error('no logging handlers defined for channel ' . $channel, E_USER_WARNING);
 				}
 				return $logger;
 			}
