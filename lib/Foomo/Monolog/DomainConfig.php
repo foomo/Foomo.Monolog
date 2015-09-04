@@ -12,42 +12,81 @@ use Monolog\Handler\StreamHandler;
 class DomainConfig extends \Foomo\Config\AbstractConfig
 {
 	const NAME = 'Foomo.Monolog.config';
-	public $channels = [
 
+	/**
+	 * channel configuration
+	 *
+	 * @var array
+	 */
+	public $channels = [
+		'default' => [
+			'handlers' => [
+				[
+					'class' => '\\Monolog\\Handler\\StreamHandler',
+					'path' => 'php://stderr',
+					'level' => \Monolog\Logger::ERROR,
+					'bubble' => false,
+					'enabled' => true
+				]
+			]
+		],
+		'performance' => [
+			'handlers' => [
+				[
+					'class' => '\\Monolog\\Handler\\StreamHandler',
+					'path' => 'php://stderr',
+					'level' => \Monolog\Logger::ERROR,
+					'bubble' => false,
+					'enabled' => true
+				]
+			],
+			'processors' => [
+				[
+					'class' => '\\Monolog\\Processor\\WebProcessor',
+					'enabled' => true
+				]
+			]
+		],
 		'app' => [
 			'handlers' => [
-				'StreamHandler' => [
-					'path' => '/var/www/craemer/var/test/logs/test1.log',
-					'level' => 'INFO',
+				[
+					'class' => '\\Monolog\\Handler\\StreamHandler',
+					'stream' => 'php://stderr',
+					'level' => \Monolog\Logger::ERROR,
+					'bubble' => false,
+					'enabled' => true
+				],
+				[
+					'class' => '\\Monolog\\Handler\\StreamHandler',
+					'stream' => '/var/www/craemer/var/test/logs/test1.log',
+					'level' => \Monolog\Logger::INFO,
 					'bubble' => true,
 					'enabled' => false
 				],
-				'RotatingFileHandler' => [
-					'path' => '/var/www/craemer/var/test/logs',
-					'max_files' => 0,
-					'level' => 'INFO',
+				[
+					'class' => '\\Monolog\\Handler\\RotatingFileHandler',
+					'filename' => '/var/www/craemer/var/test/logs',
+					'maxFiles' => 0,
+					'level' => \Monolog\Logger::INFO,
 					'bubble' => true,
 					'enabled' => false
 				],
-				'ErrorLogHandler' => [
-					'level' => 'INFO',
-					'bubble' => true,
-					'enabled' => false
-				],
-				'MongoDBHandler' => [
+				[
+					'class' => '\\Monolog\\Handler\\MongoDBHandler',
 					'server' => "mongodb://localhost:27017",
 					'database' => 'logsDb',
 					'collection' => 'logs',
-					'level' => 'INFO',
+					'level' => \Monolog\Logger::INFO,
 					'bubble' => true,
 					'enabled' => false
 				],
-				'FoomoMailHandler' => [
+				[
+					'class' => '\\Monolog\\Handler\\FoomoMailHandler',
 					'from' => 'test@test.com',
 					'to' => 'test@test.com',
 					'reply-to' => 'test@test.com',
 					'subject' => 'test.subject',
-					'level' => 'INFO',
+					'level' => \Monolog\Logger::INFO,
 					'bubble' => true,
 					'enabled' => false
 				]
@@ -80,6 +119,12 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 		$logger = new \Monolog\Logger($channel);
 		foreach ($this->channels as $confChannel => $channelConfig) {
 			if ($channel == $confChannel) {
+				# pre processor
+				$processors = self::getProcessors($channelConfig['processors']);
+				foreach ($processors as $processor) {
+					$logger->pushProcessor($processor);
+				}
+				# handler
 				$handlers = self::getHandlers($channelConfig['handlers']);
 				foreach ($handlers as $handler) {
 					$logger->pushHandler($handler);
@@ -91,122 +136,62 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	}
 
 	/**
-	 * @param array $handlersConfig handlerName => [handler_params]
+	 * @param array $handlersConfig
+	 *
 	 * @return array
 	 */
 	private static function getHandlers($handlersConfig)
 	{
-		$ret = [];
-
-		$handlersConfig = self::setDefaults($handlersConfig);
-
-		foreach ($handlersConfig as $handlerName => $handlerData) {
-			switch ($handlerName) {
-				case 'StreamHandler':
-					if ($handlerData['enabled']) {
-						$handler = new StreamHandler($handlerData['path'], $handlerData['level'], $handlerData['bubble']);
-						$ret[] = $handler;
-					}
-					break;
-				case 'RotatingFileHandler':
-					if ($handlerData['enabled']) {
-						$handler = new RotatingFileHandler($handlerData['path'], $handlerData['max_files'], $handlerData['level'], $handlerData['bubble']);
-						$ret[] = $handler;
-					}
-					break;
-				case 'ErrorLogHandler':
-					if ($handlerData['enabled']) {
-						$handler = new ErrorLogHandler(0, $handlerData['level'], $handlerData['bubble']);
-						$ret[] = $handler;
-					}
-					break;
-				case 'MongoDBHandler':
-					if ($handlerData['enabled']) {
-						$handler = new MongoDBHandler(new \MongoClient($handlerData['server']), $handlerData['database'], $handlerData['collection'], $handlerData['level'], $handlerData['bubble']);
-						$ret[] = $handler;
-					}
-					break;
-				case 'FoomoMailHandler':
-					if ($handlerData['enabled']) {
-						$handler = new FoomoMailHandler($handlerData['to'], $handlerData['subject'], $handlerData['from'], $handlerData['reply-to'], $handlerData['level'], $handlerData['bubble']);
-						$ret[] = $handler;
-					}
-					break;
-				default:
-					trigger_error('unknown handler ' . $handlerName, E_USER_WARNING);
+		$handlers = [];
+		foreach ($handlersConfig as $handlerData) {
+			if($handlerData['enabled'] && class_exists($handlerData['class'])) {
+				switch ($handlerData['class']) {
+					case '\\Monolog\\Handler\\MongoDBHandler':
+						$handlers[] = new MongoDBHandler(new \MongoClient($handlerData['server']), $handlerData['database'], $handlerData['collection'], $handlerData['level'], $handlerData['bubble']);
+						break;
+					default:
+						$handlers[] = self::instanceByReflection($handlerData);
+				}
 			}
 		}
-		return $ret;
+		return $handlers;
 	}
 
 	/**
-	 * @param array $handlersConfig handlerName => [handler_params]
+	 * @param array $handlersConfig
+	 *
 	 * @return array
 	 */
-	private static function setDefaults($handlersConfig)
+	private static function getProcessors($handlersConfig)
 	{
-		$ret = [];
-		foreach ($handlersConfig as $handlerName => $handlerData) {
-			switch ($handlerName) {
-				case 'StreamHandler':
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'path', $defaultValue = Module::getLogDir() . DIRECTORY_SEPARATOR . 'default.log');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'level', $defaultValue = \Monolog\Logger::DEBUG);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'bubble', $defaultValue = true);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'enabled', $defaultValue = false);
-					$ret[$handlerName] = $handlerData;
-					break;
-				case 'RotatingFileHandler':
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'path', $defaultValue = Module::getLogDir() . DIRECTORY_SEPARATOR . 'default-rotating.log');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'level', $defaultValue = \Monolog\Logger::DEBUG);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'bubble', $defaultValue = true);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'max_files', $defaultValue = 0);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'enabled', $defaultValue = false);
-					$ret[$handlerName] = $handlerData;
-					break;
-				case 'ErrorLogHandler':
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'level', $defaultValue = \Monolog\Logger::DEBUG);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'bubble', $defaultValue = true);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'enabled', $defaultValue = false);
-					$ret[$handlerName] = $handlerData;
-					break;
-				case 'MongoDBHandler':
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'server', $defaultValue = 'mongodb://localhost:27017');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'database', $defaultValue = 'logsDb');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'collection', $defaultValue = 'logs');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'level', $defaultValue = \Monolog\Logger::DEBUG);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'bubble', $defaultValue = true);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'enabled', $defaultValue = false);
-					$ret[$handlerName] = $handlerData;
-					break;
-				case 'FoomoMailHandler':
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'from', $defaultValue = 'from@test.com');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'to', $defaultValue = 'to@test.com');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'reply-to', ($defaultValue = $handlerData['from'] ? $handlerData['from'] : 'reply-to@test.com'));
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'subject', $defaultValue = 'subject');
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'level', $defaultValue = \Monolog\Logger::DEBUG);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'bubble', $defaultValue = true);
-					$handlerData = self::setDefaultIfNoVal($handlerData, $propertyName = 'enabled', $defaultValue = false);
-					$ret[$handlerName] = $handlerData;
-					break;
-				default:
-					trigger_error('unknown handler ' . $handlerName, E_USER_WARNING);
+		$processors = [];
+		foreach ($handlersConfig as $handlerData) {
+			if($handlerData['enabled'] && class_exists($handlerData['class'])) {
+				$processors[] = self::instanceByReflection($handlerData);
 			}
 		}
-		return $ret;
+		return $processors;
 	}
 
 	/**
-	 * @param array $handlerData
-	 * @param string $propertyName
-	 * @param mixed $defaultValue
-	 * @return array
+	 * @param array $data
+	 *
+	 * @return object instance
 	 */
-	private static function setDefaultIfNoVal($handlerData, $propertyName, $defaultValue)
+	private static function instanceByReflection($data)
 	{
-		if (!isset($handlerData[$propertyName])) {
-			$handlerData[$propertyName] = $defaultValue;
+		$reflection = new \ReflectionClass($data['class']);
+		$constructor = $reflection->getConstructor();
+		$parameters = [];
+		$parameterReflection = $constructor->getParameters();
+		foreach($parameterReflection as $parameter) {
+			$parameterName = $parameter->getName();
+			if(array_key_exists($parameterName, $data)) {
+				$parameters[] = $data[$parameterName];
+			} else if(!$parameter->isOptional()) {
+				trigger_error('invalid monolog configuration: non-optional parameter ' . $parameterName . ' for ' . $data['class'] . ' is missing', E_USER_ERROR);
+			}
 		}
-		return $handlerData;
+		return $reflection->newInstanceArgs($parameters);
 	}
 }
-

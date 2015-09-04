@@ -23,9 +23,11 @@ class Logger
 	 * log
 	 *
 	 * @param string $message
-	 * @param string $level \Monolog\Logger::DEBUG...
+	 * @param int $level something like \Monolog\Logger::DEBUG...
 	 * @param string $channel
 	 * @param mixed $context
+	 *
+	 * @return bool
 	 */
 	public static function log($message, $level = \Monolog\Logger::DEBUG, $channel = 'app', $context = [])
 	{
