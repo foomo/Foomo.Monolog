@@ -17,30 +17,25 @@
  * the foomo Opensource Framework. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Foomo\Monolog;
+namespace Foomo\Monolog\Formatter;
 
 /**
- * @link www.foomo.org
+ * @link    www.foomo.org
  * @license www.gnu.org/licenses/lgpl.txt
- * @author frederik <frederik@zitrusmedia.de>
+ * @author  frederik <frederik@zitrusmedia.de>
  */
-class Logger extends AbstractLogger
-{
+class StacktraceableLineFormatter extends \Monolog\Formatter\LineFormatter {
 
 	/**
-	 * logger channel name
-	 */
-	const NAME = 'default';
-
-	/**
-	 * @deprecated
-	 *
-	 * @return string
-	 */
-	public static function getTraceId()
+     * @param bool   $includeStacktraces Whether to print an exception's stacktrace
+     * @param string $format                The format of the message
+     * @param string $dateFormat            The format of the timestamp: one supported by DateTime::format
+     * @param bool   $allowInlineLineBreaks Whether to allow inline line breaks in log entries
+     */
+    public function __construct($includeStacktraces = true, $format = null, $dateFormat = null, $allowInlineLineBreaks = false)
 	{
-		trigger_error('Use \Foomo\Monolog\Processor\SessionProcessor::getTraceId() instead of ' . __METHOD__, E_USER_DEPRECATED);
-		return \Foomo\Monolog\Processor\SessionProcessor::getTraceId();
+		parent::__construct($format, $dateFormat, $allowInlineLineBreaks);
+		$this->includeStacktraces($includeStacktraces);
 	}
 
 }

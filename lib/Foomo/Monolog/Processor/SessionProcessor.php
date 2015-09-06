@@ -17,30 +17,44 @@
  * the foomo Opensource Framework. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Foomo\Monolog;
+namespace Foomo\Monolog\Processor;
 
 /**
- * @link www.foomo.org
+ * Injects a session's fingerprint of the current web request in all records
+ *
+ * @link    www.foomo.org
  * @license www.gnu.org/licenses/lgpl.txt
- * @author frederik <frederik@zitrusmedia.de>
+ * @author Frederik Löffert <frederik.loeffert@bestbytes.com>
  */
-class Logger extends AbstractLogger
+class SessionProcessor
 {
+    /**
+     * @var string
+     */
+    private static $traceId;
+
+    /**
+     * @param  array $record
+     * @return array
+     */
+    public function __invoke(array $record)
+    {
+        $record['extra']['traceId'] = self::getTraceId();
+        return $record;
+    }
 
 	/**
-	 * logger channel name
-	 */
-	const NAME = 'default';
-
-	/**
-	 * @deprecated
-	 *
 	 * @return string
 	 */
 	public static function getTraceId()
 	{
-		trigger_error('Use \Foomo\Monolog\Processor\SessionProcessor::getTraceId() instead of ' . __METHOD__, E_USER_DEPRECATED);
-		return \Foomo\Monolog\Processor\SessionProcessor::getTraceId();
+		if(is_null(self::$traceId)) {
+			$sessionId = \Foomo\Session::getSessionIdIfEnabled();
+			if (is_null($sessionId)) {
+				$sessionId = uniqid() . time();
+			}
+			self::$traceId = sha1($sessionId);
+		}
+		return self::$traceId;
 	}
-
 }

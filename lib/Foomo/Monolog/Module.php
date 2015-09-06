@@ -30,19 +30,11 @@ class Module extends \Foomo\Modules\ModuleBase
 	//---------------------------------------------------------------------------------------------
 
 	const NAME = 'Foomo.Monolog';
-	const VERSION = '0.2.0';
+	const VERSION = '0.3.0';
 
 	//---------------------------------------------------------------------------------------------
 	// ~ Overriden static methods
 	//---------------------------------------------------------------------------------------------
-
-	/**
-	 * Your module needs to be set up, before being used - this is the place to do it
-	 */
-	public static function initializeModule()
-	{
-
-	}
 
 	/**
 	 * Get a plain text description of what this module does
@@ -61,38 +53,18 @@ class Module extends \Foomo\Modules\ModuleBase
 	 */
 	public static function getResources()
 	{
-		return array(
-			\Foomo\Modules\Resource\Module::getResource('Foomo', '0.3.*'),
-			\Foomo\Modules\Resource\ComposerPackage::getResource('monolog/monolog', '*.*.*'), //Monolog bundle
-			\Foomo\Modules\Resource\Config::getResource(self::NAME, 'Foomo.Monolog.config')
-		);
-	}
-
-
-	/**
-	 * @var array
-	 */
-	private static $loggers = [];
-
-	/**
-	 * get logger singleton
-	 * @param $channel
-	 * @return \Monolog\Logger
-	 */
-
-	public static function getLogger($channel)
-	{
-		if (!isset(self::$loggers[$channel])) {
-			$config = \Foomo\Config::getConf(self::NAME, \Foomo\Monolog\DomainConfig::NAME);
-			self::$loggers[$channel] = $config->getLogger($channel);
-		}
-		return self::$loggers[$channel];
+		$resources = [
+			\Foomo\Modules\Resource\Module::getResource('Foomo', '0.4.*'),
+			\Foomo\Modules\Resource\ComposerPackage::getResource('monolog/monolog', '*.*.*'), //Monolog composer
+			\Foomo\Modules\Resource\Config::getResource(self::NAME, 'Foomo.Monolog.channel')
+		];
+		return $resources;
 	}
 
 	/**
-	 * @return \Foomo/Monolog/DomainConfig
+	 * @return \Foomo\Monolog\Config\Channel
 	 */
-	public static function getModuleConfig() {
-		return \Foomo\Config::getConf(self::NAME, \Foomo\Monolog\DomainConfig::NAME);
+	public static function getDefaultChannelConfig() {
+		return \Foomo\Config::getConf(self::NAME, \Foomo\Monolog\Config\Channel::NAME);
 	}
 }
