@@ -55,7 +55,7 @@ class Module extends \Foomo\Modules\ModuleBase
 	{
 		$resources = [
 			\Foomo\Modules\Resource\Module::getResource('Foomo', '0.4.*'),
-			\Foomo\Modules\Resource\ComposerPackage::getResource('monolog/monolog', '*.*.*'), //Monolog composer
+			\Foomo\Modules\Resource\ComposerPackage::getResource('monolog/monolog', '1.19.*'), //Monolog composer
 			\Foomo\Modules\Resource\Config::getResource(self::NAME, 'Foomo.Monolog.channel')
 		];
 		return $resources;
